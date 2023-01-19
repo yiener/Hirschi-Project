@@ -4,6 +4,7 @@ const {v4:uuidv4, parse} = require("uuid")
 const {Account }= require("../account/index")
 const { REWARD } = require("../config")
 const Interpreter = require("../interpreter")
+const { codeExcution } = require("../interpreter/fragmentation")
 const { State } = require("../store/state")
 
 const state = new State()
@@ -131,10 +132,8 @@ class Transaction {
     static runStandarTransaction({transaction }){
         const fromAccount = state.getAccount({address: transaction.from})
         const toAccount = state.getAccount({address : transaction.to}) 
-        const interpreter  = new Interpreter()
-         interpreter.runcode(toAccount.code)
         console.log("----------- start smart contract excution --------------");
-        console.log(interpreter.state.stack[0]);
+        console.log(codeExcution(toAccount.code));
         console.log("---------stop smart contract excution-----");
         const {value} = transaction
         fromAccount.balance -=value

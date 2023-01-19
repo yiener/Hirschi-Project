@@ -6,8 +6,11 @@
   },
   "dependencies": {
     "body-parser": "^1.20.1",
+    "child_process": "^1.0.2",
+    "disasm": "^1.5.0",
     "elliptic": "^6.5.4",
     "express": "^4.18.2",
+    "fs": "^0.0.1-security",
     "jest": "^29.3.1",
     "jquery-json": "^2.6.0",
     "js-sha3": "^0.8.0",
@@ -17,6 +20,7 @@
     "request": "^2.88.2",
     "uuid": "^9.0.0",
     "uuidv4": "^6.2.13",
+    "web3": "^1.8.1",
     "ws": "^8.11.0"
   }
 }
