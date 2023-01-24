@@ -1,6 +1,6 @@
-const { Interpreter } = require(".");
+const { Interpreter } = require("../interpreter");
 
-let code = ["PUSH10" , 9 , "PUSH10" , 8 ,"ADD" , "STOP"]
+/*let code = ["PUSH10" , 9 , "PUSH10" , 8 ,"ADD" , "STOP"]*/
 
 const fragmentation = (code) =>{
   let last
