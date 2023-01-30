@@ -1,6 +1,7 @@
 const { Interpreter } = require("../interpreter");
 
-let code = [  "PUSH14",4,"PUSH14" , 9 , "PUSH14" , 8 , "DUP14" , 4,  , "SWAP14" , 2,"ADD" , "ADD", "JUMP" , "JUMPI" ,"SUB","MUL","DIV", "STOP"]
+let code = [  "PUSH14",4,"PUSH14" , 9 , "PUSH14" , 8 , "DUP14" , 4,  , "SWAP14" , 2,"ADD" ,"JUMP", "ADD", "JUMP" , "JUMPI"  , "SUB","SUB","MUL","DIV","LT","EQ","GT","AND","OR","MOD","ADDMOD","MULMOD","ISZERO", 
+"EXP","SSTORE","SLOAD","MLOAD","MSTORE","MSIZE","PC","STOP"]
 
 
 
@@ -106,6 +107,10 @@ const fragmentation = (code) => {
   const pcPositions = [];
   let originalOrderPc = [];
   let originalOrderPcPositions = [];
+  const stopValues = [];
+  const stopPositions = [];
+  let originalOrderStop = [];
+  let originalOrderStopPositions = [];
 
   for (let i = 0; i < code.length; i++) {
     if (typeof code[i] === "string" && /^PUSH[1-9]|1[0-16]$/.test(code[i])) {
@@ -118,20 +123,12 @@ const fragmentation = (code) => {
     if (typeof code[i] === "string" && /^DUP[1-9]|1[0-16]$/.test(code[i])) {
         dupValues.push(code[i]);
         dupPositions.push(i);
-        if (typeof code[i + 1] === "number") {
-            dupValues.push(code[i + 1]);
-            dupPositions.push(i + 1);
-            i++;
-        }
+     
     }
     if (typeof code[i] === "string" && /^SWAP[1-9]|1[0-16]$/.test(code[i])) {
         swapValues.push(code[i]);
         swapPositions.push(i);
-        if (typeof code[i + 1] === "number") {
-            swapValues.push(code[i + 1]);
-            swapPositions.push(i + 1);
-            i++;
-        }
+       
     }
     if (code[i] === "SUB") {
         subValues.push(code[i]);
@@ -221,6 +218,10 @@ const fragmentation = (code) => {
         pcValues.push(code[i]);
         pcPositions.push(i)
     }
+    if(code[i] === "STOP"){
+        stopValues.push(code[i]);
+        stopPositions.push(i)
+    }
   }
   originalOrderPush= pushValues;
   originalOrderPushPositions= pushPositions;
@@ -247,7 +248,7 @@ const fragmentation = (code) => {
   originalOrderGt = gtValues;
   originalOrderGtPositions = gtPositions;
   originalOrderAnd = andValues;
-  originalOrderAddPositions = andPositions;
+  originalOrderAndPositions = andPositions;
   originalOrderOr = orValues;
   originalOrderOrPositions = orPositions;
   originalOrderMod = modValues;
@@ -272,23 +273,24 @@ const fragmentation = (code) => {
   originalOrderMsizePositions = msizePositions;
   originalOrderPc = pcValues;
   originalOrderPcPositions = pcPositions;
-
+  originalOrderStop = stopValues;
+  originalOrderStopPositions = stopPositions;
 
   const filteredCode = code.filter((instruction, index) => !originalOrderPushPositions.includes(index) && !originalOrderDupPositions.includes(index) && !originalOrderSwapPositions.includes(index)&& !originalOrderSubPositions.includes(index)
   && !originalOrderMulPositions.includes(index) && !originalOrderDivPositions.includes(index) && !originalOrderJumpPositions.includes(index) && !originalOrderJumpiPositions.includes(index) 
   && !originalOrderAddPositions.includes(index) && !originalOrderLtPositions.includes(index) && !originalOrderEqPositions.includes(index) && !originalOrderGtPositions.includes(index) && !originalOrderAndPositions.includes(index)
   && !originalOrderOrPositions.includes(index) && !originalOrderModPositions.includes(index) && !originalOrderAddmodPositions.includes(index) && !originalOrderMulmodPositions.includes(index) && !originalOrderIszeroPositions.includes(index)
   && !originalOrderExpPositions.includes(index) && !originalOrderSstorePositions.includes(index) && !originalOrderSloadPositions.includes(index) && !originalOrderMloadPositions.includes(index) && !originalOrderMstorePositions.includes(index)
-  && !originalOrderMsizePositions.includes(index) && !originalOrderPcPositions.includes(index)
+  && !originalOrderMsizePositions.includes(index) && !originalOrderPcPositions.includes(index) && !originalOrderStopPositions.includes(index)
   );
   last = filteredCode
 
-  return [last , originalOrderPush , originalOrderPushPositions, originalOrderDup, originalOrderDupPositions, originalOrderSwap, originalOrderSwapPositions
+  return [/*last ,*/ originalOrderPush , originalOrderPushPositions, originalOrderDup, originalOrderDupPositions, originalOrderSwap, originalOrderSwapPositions
 ,originalOrderSub  , originalOrderSubPositions  , originalOrderMul , originalOrderMulPositions , originalOrderDiv , originalOrderDivPositions , originalOrderJump , originalOrderJumpPositions,
  originalOrderJumpi , originalOrderJumpiPositions , originalOrderAdd , originalOrderAddPositions ,originalOrderLt , originalOrderLtPositions ,originalOrderEq , originalOrderEqPositions ,originalOrderGt , originalOrderGtPositions ,
  originalOrderAnd , originalOrderAndPositions ,originalOrderOr , originalOrderOrPositions ,originalOrderMod , originalOrderModPositions , originalOrderAddmod , originalOrderAddmodPositions ,originalOrderMulmod , originalOrderMulmodPositions ,
  originalOrderIszero , originalOrderIszeroPositions ,originalOrderExp , originalOrderExpPositions ,originalOrderSstore , originalOrderSstorePositions ,originalOrderSload , originalOrderSloadPositions ,originalOrderMload , originalOrderMloadPositions , 
- originalOrderMstore , originalOrderMstorePositions ,originalOrderMsize , originalOrderMsizePositions ,originalOrderPc , originalOrderPcPositions ,]
+ originalOrderMstore , originalOrderMstorePositions ,originalOrderMsize , originalOrderMsizePositions ,originalOrderPc , originalOrderPcPositions ,originalOrderStop  , originalOrderStopPositions]
 }
 
 
