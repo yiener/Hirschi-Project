@@ -1,6 +1,6 @@
 const { Interpreter } = require("../interpreter");
 
-let code = [  "PUSH14",4,"PUSH14" , 9 , "PUSH14" , 8 , "DUP14" , 4,  , "SWAP14" , 2,"ADD" ,"JUMP", "ADD", "JUMP" , "JUMPI"  , "SUB","SUB","MUL","DIV","LT","EQ","GT","AND","OR","MOD","ADDMOD","MULMOD","ISZERO", 
+let code = [ "PUSH14",4,"PUSH14" , 9 , "PUSH14" , 8 , "DUP14"  , "SWAP14" ,"ADD" ,"JUMP", "ADD", "JUMP" , "JUMPI"  , "SUB","SUB","MUL","DIV","LT","EQ","GT","AND","OR","MOD","ADDMOD","MULMOD","ISZERO", 
 "EXP","SSTORE","SLOAD","MLOAD","MSTORE","MSIZE","PC","STOP"]
 
 
@@ -256,7 +256,7 @@ const fragmentation = (code) => {
   originalOrderAddmod = addmodValues;
   originalOrderAddmodPositions = addmodPositions;
   originalOrderMulmod = mulmodValues;
-  originalOrderMulPositions = mulmodPositions;
+  originalOrderMulmodPositions = mulmodPositions;
   originalOrderIszero = iszeroValues;
   originalOrderIszeroPositions = iszeroPositions;
   originalOrderExp = expValues;
