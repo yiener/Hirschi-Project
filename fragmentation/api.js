@@ -1,4 +1,5 @@
 const express = require('express')
+const { fragmentation } = require('.')
 const app = express()
 
 app.use(express.json())
@@ -12,3 +13,4 @@ app.post('/fragment', (req, res) => {
 app.listen(3000, () => {
   console.log('API running on port 3000')
 })
+
