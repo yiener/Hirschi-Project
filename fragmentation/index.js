@@ -1,7 +1,7 @@
 const { Interpreter } = require("../interpreter");
+const { organizeInstructions } = require("./NewOrder");
 
-let code = [ "PUSH14",4,"PUSH14" , 9 , "PUSH14" , 8 , "DUP14"  , "SWAP14" ,"ADD" ,"JUMP", "ADD", "JUMP" , "JUMPI"  , "SUB","SUB","MUL","DIV","LT","EQ","GT","AND","OR","MOD","ADDMOD","MULMOD","ISZERO", 
-"EXP","SSTORE","SLOAD","MLOAD","MSTORE","MSIZE","PC","STOP"]
+
 
 
 
@@ -301,6 +301,6 @@ module.exports={ fragmentation}
 console.log(originalOrderPush);
 console.log(originalOrderPushPositions);*/
 
-console.log(fragmentation(code));
+
 
 
