@@ -6,7 +6,6 @@ const { countBytes } = require("./bytes.js")
 const { storage } = require("./memory.js")
 const keyar = []
 const valar = []
-const memory = []
 const STOP = "STOP"
 const ADD = "ADD"
 const SUB = "SUB"
@@ -19,6 +18,9 @@ const AND = "AND";
 const OR = "OR"
 const JUMP = "JUMP"
 const JUMPI = "JUMPI"
+const SHL = "SHL"
+const SHR = "SHR"
+const SAR = "SAR"
 const EXECUTION_COMPLETE = "execution complete"
 const PUSH1 = "PUSH1"
 const PUSH2 = "PUSH2"
@@ -96,7 +98,16 @@ const DUP13 = "DUP13"
 const DUP14 = "DUP14"
 const DUP15 ="DUP15"
 const DUP16 = "DUP16"
-
+const REVERT = "REVERT"
+const DELEGATECALL = "DELEGATECALL"
+const CALLER = "CALLER"
+const CALLVALUE = "CALLVALUE"
+const CALLDATA = "CALLDATA"
+const CALLDATALOAD = "CALLDATALOAD"
+const CALLDATASIZE = "CALLDATASIZE"
+const CALLDATACOPY = "CALLDATACOPY"
+const CALLSIZE = "CALLSIZE"
+const CODECOPY = "CODECOPY"
 
 
 const EXECUTION_LIMIT=1000
@@ -112,7 +123,13 @@ class Interpreter{
         programcounter:0,
         stack:[],
         code:[],
-        executionCode:0
+        executionCode:0,
+        contract : {},
+        caller:null,
+        callValue : 0 ,
+        callData:[],
+        memory : [],
+
 
 
        }
@@ -143,6 +160,14 @@ class Interpreter{
        }
      
    }
+   getContract(address) {
+    // implementar la lógica para obtener el contrato a partir de su dirección
+    // puede ser desde un almacén local o desde una llamada a una API remota
+    return {
+      run: () => {
+        console.log("Ejecutando código del contrato en dirección: " + address);
+      }
+    }};
 
    runcode(code){
       this.state.code=code 
@@ -464,9 +489,76 @@ class Interpreter{
                                                                     this.state.stack[16]=s1}
                 
               break
+            case SHL:
+                let l_ = this.state.stack.pop();
+                let a_ = this.state.stack.pop();
+                this.state.stack.push(a_ << l_);
 
-            
+              break
+            case SHR:
+                let shif = this.state.stack.pop();
+                let valu = this.state.stack.pop();
+                this.state.stack.push(valu >> shif);
+              break
+            case SAR:
+              let shift = this.state.stack.pop();
+              let value = this.state.stack.pop();
+              this.state.stack.push(value >>> shift);
+              break
 
+            case REVERT:
+                return
+               break 
+            case DELEGATECALL:
+                this.state.contract = this.getContract(contractAddress);
+                this.state.contract.run();
+        
+             break 
+             case CALLER:
+                this.state.stack.push(this.state.caller);
+                break;
+              case CALLVALUE:
+                this.state.stack.push(this.state.callValue);
+                break;
+              case CALLDATALOAD:
+                let loadIndex = this.state.stack.pop();
+                let valu_ = this.state.callData[loadIndex];
+                this.state.stack.push(valu_);
+                break;
+              case CALLDATASIZE:
+                this.state.stack.push(this.state.callData.length);
+                break;
+              case CALLDATACOPY:
+                let destIndex = this.state.stack.pop();
+                let sourceIndex = this.state.stack.pop();
+                let length = this.state.stack.pop();
+        
+                for (let i = 0; i < length; i++) {
+                  this.state.memory[destIndex + i] = this.state.callData[sourceIndex + i];
+                }
+                break;
+              case CALLSIZE:
+                this.state.stack.push(this.state.code.length);
+                break;
+              case CODECOPY:
+                let codeDestIndex = this.state.stack.pop();
+                let codeSourceIndex = this.state.stack.pop();
+                let codeLength = this.state.stack.pop();
+        
+                for (let i = 0; i < codeLength; i++) {
+                  this.state.memory[codeDestIndex + i] = this.state.code[codeSourceIndex + i];
+                }
+                break;
+                case SIGNEXTEND:
+                  let bit = this.state.stack.pop();
+                  let value__ = this.state.stack.pop();
+                  let signBit = value__ & (1 << (bit * 8 - 1));
+                  let extended = signBit ? value__ | (0xffffffff << (32 - bit * 8)) : value__;
+                  this.state.stack.push(extended);
+                  break;
+                
+                  
+              
         }
 
 
@@ -495,9 +587,13 @@ class Interpreter{
 /*const code = [PUSH1 , 0 , PUSH1 , 10 ,MSTORE  , MSIZE ,  STOP]*/
 /*const code = [PUSH7 , 7 ,PUSH10 , 9 ,SWAP1 ,  DIV ,     STOP] */
 
-
-
-
+const code = [ PUSH10 , 9 , PUSH10 , 7 , SIGNEXTEND , STOP ]
+try{const interpreter = new Interpreter()
+ interpreter.runcode(code)
+ console.log(interpreter.state.stack[0]);
+}catch(err){
+   new Error(err)
+}
 Interpreter.OPCODE_MAP = OPCODE_MAP
 module.exports={Interpreter 
 }

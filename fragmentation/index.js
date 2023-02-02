@@ -302,5 +302,6 @@ console.log(originalOrderPush);
 console.log(originalOrderPushPositions);*/
 
 
+const code =  ["PUSH10" , 14 ,"PUSH10" , 9 ,"ADD","STOP"]
 
-
+console.log(fragmentation(code));
