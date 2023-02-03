@@ -3,7 +3,7 @@ const bodyParser= require("body-parser")
 const { Blockchain } = require("../blockchain")
 const { Block } = require("../blockchain/block")
 /*const { PubSub } = require("./pubsub")*/
-const HTTP_PORT = process.env.HTTP_PORT || 3000;
+const HTTP_PORT = process.env.HTTP_PORT || 3003;
 const {P2pServer} = require("./pubsub")
 const p2pserver = new P2pServer()
 const request = require("request")
@@ -90,7 +90,7 @@ app.use((err , req , res , next) =>{
 
 
 const peer = process.argv.includes("--peer")
-const PORT = peer ? Math.floor(2000 + Math.random() * 1000) : 3000
+const PORT = peer ? Math.floor(2000 + Math.random() * 1000) : 3003
 
 if(peer){
     

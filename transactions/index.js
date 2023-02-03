@@ -3,8 +3,9 @@ const {v4:uuidv4, parse} = require("uuid")
 
 const {Account }= require("../account/index")
 const { REWARD } = require("../config")
+
 const Interpreter = require("../interpreter")
-const { codeExcution } = require("../interpreter/fragmentation")
+
 const { State } = require("../store/state")
 
 const state = new State()
