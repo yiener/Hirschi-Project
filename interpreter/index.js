@@ -110,7 +110,13 @@ const CALLSIZE = "CALLSIZE"
 const CODECOPY = "CODECOPY"
 const JUMPDEST = "JUMPDEST"
 const POP = "POP"
-
+const LOG0 = "LOG0"
+const LOG1 = "LOG1"
+const LOG2 = "LOG2"
+const LOG3 = "LOG3"
+const LOG4 = "LOG4"
+const RETURN = "RETURN"
+const INVALID = "INVALID"
 const EXECUTION_LIMIT=1000
 const OPCODE_MAP={
     STOP , ADD  , MUL , SUB , DIV ,  LT , GT ,EQ , AND ,
@@ -567,9 +573,62 @@ class Interpreter{
                 case POP:
                    this.state.stack.pop();
                     break;
-                
-                  
-              
+                case LOG0 :
+                  const Length = this.state.stack.pop();
+                  const offset = this.state.stack.pop();
+                  const memorySlice = this.state.memory.slice(offset, offset + Length);
+                  const event = { data: memorySlice };
+                  this.state.contract.emit("LOG0", event);
+                     break;
+                case LOG1:
+                  const topic0 = this.state.stack.pop();
+                  const length_ = this.state.stack.pop();
+                  const offset_ = this.state.stack.pop();
+                  const memorySlice_ = this.state.memory.slice(offset_, offset_ + length_);
+                  const event_ = { data: memorySlice_, topics: [topic0] };
+                  this.state.contract.emit("LOG1", event_);
+
+                   break;
+                 case LOG2:
+                  const topic1 = this.state.stack.pop();
+                  const topic0_ = this.state.stack.pop();
+                  const length__ = this.state.stack.pop();
+                  const offset__ = this.state.stack.pop();
+                  const memorySlice__ = this.state.memory.slice(offset__, offset__ + length__);
+                  const event__ = { data: memorySlice__, topics: [topic0_, topic1] };
+                  this.state.contract.emit("LOG2", event__);
+                  break; 
+                  case LOG3:
+                    const topic2___ = this.state.stack.pop();
+                    const topic1___ = this.state.stack.pop();
+                    const topic0___= this.state.stack.pop();
+                    const length___ = this.state.stack.pop();
+                    const offset___ = this.state.stack.pop();
+                    const memorySlice___ = this.state.memory.slice(offset___, offset___ + length___);
+                    const event___ = { data: memorySlice___, topics: [topic0___, topic1___, topic2___] };
+                    this.state.contract.emit("LOG3", event___); 
+                   break;
+                case LOG4:
+                  const topic3 = this.state.stack.pop();
+                  const topic2 = this.state.stack.pop();
+                  const topic1____ = this.state.stack.pop();
+                  const topic0____ = this.state.stack.pop();
+                  const length____ = this.state.stack.pop();
+                  const offset____ = this.state.stack.pop();
+                  const memorySlice____ = this.state.memory.slice(offset____, offset____ + length____);
+                  const event____ = { data: memorySlice____, topics: [topic0____, topic1____, topic2, topic3] };
+                  this.state.contract.emit("LOG4", event____);
+                  break;
+                case RETURN: 
+                  const length_1 = this.state.stack.pop();
+                  const offset_1 = this.state.stack.pop();
+                  const returnValue = this.state.memory.slice(offset_1, offset_1 + length_1);
+                  this.state.executionCode = -1;
+                  return returnValue;
+                 break; 
+                case INVALID:
+                  this.state.executionCode = -1;
+                  break;
         }
 
 
