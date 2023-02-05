@@ -1,7 +1,5 @@
 
-
-
-
+const {keccak256} = require('js-sha3');
 const { countBytes } = require("./bytes.js")
 const { storage } = require("./memory.js")
 const keyar = []
@@ -117,6 +115,10 @@ const LOG3 = "LOG3"
 const LOG4 = "LOG4"
 const RETURN = "RETURN"
 const INVALID = "INVALID"
+const SLT = "SLT"
+const KECCAK256 = "KECCAK256"
+const SGT = "SGT"
+const SMOD ="SMOD"
 const EXECUTION_LIMIT=1000
 const OPCODE_MAP={
     STOP , ADD  , MUL , SUB , DIV ,  LT , GT ,EQ , AND ,
@@ -283,6 +285,9 @@ class Interpreter{
             case ISZERO:
             case EXP:
             case SIGNEXTEND:
+            case SLT:
+            case SGT:
+            case SMOD:
             
                 const a = this.state.stack.pop()
                 const b = this.state.stack.pop()
@@ -301,7 +306,9 @@ class Interpreter{
                 if(opCode===MOD) result = a % b
                 if(opCode===ISZERO) result = a==0 ? 1:0
                 if(opCode===EXP) result=a**b
-                
+                if(opCode===SLT) result = a < b
+                if(opCode===SGT) result = a > b
+                if(opCode===SMOD) result = a % b
 
              this.state.stack.push(result)
             
@@ -629,6 +636,13 @@ class Interpreter{
                 case INVALID:
                   this.state.executionCode = -1;
                   break;
+                case KECCAK256:
+                    const offset_2 = this.state.stack.pop();
+                    const length_2 = this.state.stack.pop();
+                    const data = this.state.memory.slice(offset_2, offset_2 + length_2);
+                    const hash = keccak256(data);
+                    this.state.stack.push(hash);
+                    break;
         }
 
 
