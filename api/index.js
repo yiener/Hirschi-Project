@@ -92,18 +92,8 @@ app.use((err , req , res , next) =>{
 const peer = process.argv.includes("--peer")
 const PORT = peer ? Math.floor(2000 + Math.random() * 1000) : 3003
 
-if(peer){
-    
-    request(`http://localhost:3000/blockchain` ,(error  ,response  , body) =>{
-        const { chain } = JSON.parse(body)
-        blockchain.replaceChain({ chain })
-       
-        .then(() =>console.log("syncronized blockchain with the root node"))
-        .catch(error => console.error(error))
-        
-    })
-}
 
-app.listen(PORT  , () =>{console.log(`listening ${PORT}`)})
+
+app.listen(PORT , () =>{console.log(`listening ${PORT}`)})
 
 

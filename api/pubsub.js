@@ -1,81 +1,6 @@
-/*const { json } = require("express");
-const PubNub = require("pubnub")
-const { v4: uuidv4 } = require('uuid');
-const { Blockchain } = require("../blockchain");
-const { Transaction } = require("../transactions");
-const { TransactionQueue } = require("../transactions/transaction-queue");
-
-
-const credential = {
-    publishKey : "pub-c-7d0732d3-5db0-4903-818d-d9f0223ba15a",
-    subscribeKey : "sub-c-5ce03db2-3106-46e6-946b-3dad62ce1222",
-    secretKey : "sec-c-NDYwYzI2MWEtMjgwMS00M2UzLWE0MDUtNDE0MmE1NDg0NDVk",
-    uuid : uuidv4()
-}
-
-const CHANNELS_MAP= {
-    TEST : "TEST" ,
-    BLOCK : "BLOCK" ,
-    TRANSACTION : "TRANSACTION"
-}
-
-class PubSub {
-     constructor(   ){
-        this.pubnub = new PubNub(credential)
-        this.TransactionQueue = new TransactionQueue()
-        this.blockchain = new Blockchain()
-        this.subscribeToChannels()
-        this.listen()
-     }
-
-     subscribeToChannels(){
-        this.pubnub.subscribe({
-            channels : Object.values(CHANNELS_MAP)
-        })
-
-     }
-     publish({channel , message}){
-        this.pubnub.publish({channel , message })
-     }
-
-     listen(){
-        this.pubnub.addListener({
-            message: messageObject =>{
-                const {channel , message } = messageObject
-                const parseMessage = JSON.parse(message)
-                console.log("message recived Channel" ,  channel);
-                switch(channel){
-                    case CHANNELS_MAP.BLOCK:
-                        console.log("block message" , message);
-                        this.blockchain.addBlock(({ block : parseMessage}))
-                        .then(() =>  console.log("New block Accepted" , parseMessage))
-                        .catch(error => console.error("new block rejected" , error.message ) )
-                        break
-                    case CHANNELS_MAP.TRANSACTION:
-                        console.log(`transaction received ${parseMessage.id}`)
-                        this.TransactionQueue.add(new Transaction(parseMessage))
-                        break
-                    default:
-                        return
-                }
-            }
-        })
-     }
-    broadcastBlock(block){
-            this.publish({
-                channel : CHANNELS_MAP.BLOCK ,
-                message : JSON.stringify(block)
-            })
-    }
-      broadcastTransaction(transaction){
-        this.publish({
-            channel : CHANNELS_MAP.TRANSACTION ,
-            message : JSON.stringify(transaction)
-        })
-}
-}
-
-module.exports={PubSub}*/
+const sodium = require('libsodium-wrappers');
+const crypto = require('crypto');
+const tls = require('tls');
 const Websocket = require('ws');
 const { Blockchain } = require('../blockchain');
 const { Block } = require('../blockchain/block');
@@ -91,19 +16,65 @@ const MESSAGE_TYPES = {
 }
 
 class P2pServer{
-    constructor(blockchain, transactionPool){
+    constructor(blockchain, transactionPool , port, host, peerCertificate, privateKey){
         this.blockchain = blockchain;
         this.TransactionQueue = new TransactionQueue();
         this.blockchain = new Blockchain()
         this.sockets = [];
+        this.port = port;
+        this.host = host;
+        this.peerCertificate = peerCertificate;
+        this.privateKey = privateKey;
+
     }
 
-    listen(){
-        const server = new Websocket.Server({port: P2P_PORT});
+    async listen(){
+     await sodium.ready;
+     const options = {
+        key: this.privateKey,
+        cert: this.peerCertificate,
+        requestCert: true,
+        rejectUnauthorized: true
+      };
+  
+      const server = tls.createServer(options, socket => {
+        const authenticated = this.verifyPeer(socket);
+        if (authenticated) {
+          this.connectSocket(socket);
+        } else {
+          console.log("Peer failed to authenticate");
+        }
+      });
+  
+      server.listen(this.port, this.host, () => {
+        console.log(`P2P Server listening on ${this.host}:${this.port}`);
+      });
+  
+       /* const server = new Websocket.Server({port: P2P_PORT});
         server.on('connection', socket => this.connectSocket(socket));
         this.connectToPeers();
-        console.log(`Listening for peer to peer connections on port ${P2P_PORT}`);
+        console.log(`Listening for peer to peer connections on port ${P2P_PORT}`);*/
     }
+    verifyPeer(socket) {
+        const peerCertificate = socket.getPeerCertificate();
+        const peerPublicKey = peerCertificate.pubkey;
+    
+        if (!peerCertificate.subject) {
+          console.log("Peer certificate does not have a subject");
+          return false;
+        }
+    
+        const message = "Authentication message";
+        const signature = socket.receiveSignature();
+        const verifier = crypto.createVerify("RSA-SHA256");
+        verifier.update(message);
+        return verifier.verify(peerPublicKey, signature, 'hex');
+      }
+    
+      connectSocket(socket) {
+        console.log(`Connected to peer: ${socket.remoteAddress}:${socket.remotePort}`);
+      }
+
 
     connectToPeers(){
         peers.forEach(peer => {
@@ -112,16 +83,22 @@ class P2pServer{
         })
     }
 
-    connectSocket(socket){
+   /* connectSocket(socket){
         this.sockets.push(socket);
         console.log('Socket connected');
         this.messageHandler(socket);
         this.sendChain(socket);
-    }
+    }*/
 
     messageHandler(socket){
-        socket.on('message', message => {
-            const data = JSON.parse(message);
+        socket.on('message',async message => {
+            const encryptedMessage = JSON.parse(message);
+            const decryptedMessage = await sodium.crypto_secretbox_open_easy(
+            encryptedMessage.ciphertext,
+            encryptedMessage.nonce,
+            encryptedMessage.key
+        );
+            const data = JSON.parse(decryptedMessage);
             switch(data.type){
                 case MESSAGE_TYPES.chain:
                     this.blockchain.replaceChain(data.chain)
@@ -138,9 +115,17 @@ class P2pServer{
     }
 
     sendChain(socket){
-        socket.send(JSON.stringify({
+        const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
+        const key = sodium.crypto_secretbox_KEYBYTES;
+        const plaintext = JSON.stringify({
             type: MESSAGE_TYPES.chain,
             chain: this.blockchain.chain
+        });
+        const ciphertext = sodium.crypto_secretbox_easy(plaintext, nonce, key);
+        socket.send(JSON.stringify({
+            nonce,
+            key,
+            ciphertext
         }));
     }
 
