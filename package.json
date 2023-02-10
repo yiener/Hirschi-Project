@@ -17,6 +17,7 @@
     "js-sha3": "^0.8.0",
     "libsodium-wrappers": "^0.7.10",
     "lodash": "^4.17.21",
+    "net": "^1.0.2",
     "nodemon": "^2.0.20",
     "pubnub": "^7.2.1",
     "request": "^2.88.2",
