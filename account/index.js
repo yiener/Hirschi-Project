@@ -7,14 +7,14 @@ const state = new State()
 const {ec, keccakHash} = require("../util/index")
 
 class Account{
-    constructor({code }= {}){
+    constructor(){
         this.keyPair = ec.genKeyPair()
         this.address = this.keyPair.getPublic().encode("hex")
         this.balance =  STATIC_BALANCE
-        this.code = code || []
+        
         this.generateCodeHash()
     }
-    generateCodeHash(){
+   static generateCodeHash(){
         this.codeHash = this.code.length > 0 ? keccakHash(this.address + this.code ) : null
     }
     sign(data){
@@ -25,17 +25,16 @@ class Account{
     static verifySignature({publicKey , data , signature}){
         return ec.keyFromPublic(publicKey , "hex").verify(keccakHash(data) , signature)
     }
-    toJSON(){
+   static toJSON(Code_){
        return{ address:this.address,
                balance : this.balance,
-               code : this.code ,
+               code : [Code_],
                codeHash : this.codeHash
+
 
        }
     }
-    static calculateBalance({address , state}){
-        return state.getAccount({address}).balance
-    }
+  
 
    
 }

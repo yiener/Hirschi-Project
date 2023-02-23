@@ -1,101 +1,46 @@
+const { cn } = require("../combinations");
+const { determineCombination } = require("../determineCombination");
+const { Excution } = require("../excution");
+const { Transaction } = require("../transactions");
+const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
+const EC = require("elliptic").ec, ec = new EC("secp256k1");
+const MINT_PRIVATE_ADDRESS = "0700a1ad28a20e5b2a517c00242d3e25a88d84bf54dce9e1733e6096e6d6495e";
+const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
+const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
-const { cn } = require("../combinations")
-const { GENESIS_DATA } = require("../config")
-const { Trie } = require("../store/trie")
-const { Transaction } = require("../transactions")
-const { TransactionQueue } = require("../transactions/transaction-queue")
-const transactionQ = new TransactionQueue()
-const { keccakHash } = require("../util")
-
-var  callCount = 0 
-var r = 0
-
-class Block{
-    constructor({blockHeaders , trasactionSeries}){
-        this.blockHeaders = blockHeaders
-
-        this.trasactionSeries = trasactionSeries
-    }
-
-    static determineCombination(){
-        if(callCount  === cn.length-1){
-            callCount = 0
-            
-           
-      }else{
-         if(callCount === 0 && r === 0){
-              r++
-         }else{
-         callCount += 1;
-         }
-         
-      }
-    
-      return callCount
-      
-
-    }
-    static pocnBlock({lastBlock , beneficiary ,transactionsSeries  , stateRoot}){
-        const rewardTransaction =  Transaction.createTransaction({
-            beneficiary
-        })
-        transactionsSeries.push(rewardTransaction)
-        const transactionsTrie = Trie.buildTrie({items : transactionsSeries})
+class Block {
+    constructor( timestamp = Date.now(), data = []) {
+        this.timestamp = timestamp
+        this.data = data;
+        this.prevHash = "";
+        this.hash = Block.getHash(this);
+        this.combination=cn[determineCombination()]
         
-        let timestamp , truncatedBlockHeaders , header
-
-        timestamp = Date.now()
-        truncatedBlockHeaders = {
-            parentHash : keccakHash(lastBlock.blockHeaders),
-            beneficiary,
-            number : lastBlock.blockHeaders.number+1 ,
-            
-            combination : lastBlock.blockHeaders.combination = cn[this.determineCombination()] 
-              ,
-            timestamp,
-            transactionsRoot:transactionsTrie.rootHash ,
-            stateRoot,
-            transactionsSeries
-
-
-
-        }
-
-        header = keccakHash(truncatedBlockHeaders)
-        
-         return new this({ 
-            blockHeaders : {...truncatedBlockHeaders } ,
-            transactionsSeries
-
-         })
     }
+
+    static getHash(block) {
+        return SHA256(block.prevHash + block.timestamp + JSON.stringify(block.data) /*+ block.nonce*/);
+    }
+
     
-    static genesis(){
-        return new this(GENESIS_DATA)
-    }
-    static validateBlock({lastBlock , block}){
 
-        return new Promise((resolve , reject) =>{
-           if(keccakHash(block) === keccakHash(Block.genesis())){
-              return resolve()
-           }
-          /*if(keccakHash(lastBlock.blockHeaders) !== block.blockHeaders.parentHash){
-                return reject(new Error("the parent hash must to be a hash  of the last block headers"))
-            }*/
-          /*  if(block.blockHeaders.number !== lastBlock.blockHeaders.number+1){
-                return reject(new Error("the block must be increment by 1 "))
-            }*/
-            
-            return resolve()
-        })
-    }
-   static runBlock({   state }){
-        for(let transaction of transactionQ.ViewPool()){
-            
-            Transaction.runTransaction({transaction , state})
-        }
+    static hasValidTransactions(block, chain) {
+        let gas = 0, reward = 0;
+
+        block.data.forEach(transaction => {
+            if (transaction.from !== MINT_PUBLIC_ADDRESS) {
+                gas += transaction.gas;
+            } else {
+                reward = transaction.amount;
+            }
+        });
+
+        return (
+            reward - gas === chain.reward &&
+            block.data.every(transaction => Transaction.isValid(transaction, chain)) && 
+            block.data.filter(transaction => transaction.from === MINT_PUBLIC_ADDRESS).length === 1
+        );
     }
 }
 
-
-module.exports = {Block}
+module.exports={Block}

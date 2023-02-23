@@ -1,161 +1,47 @@
-const { reject } = require("lodash")
+const { Account } = require("../account");
 const {v4:uuidv4, parse} = require("uuid")
-
-const {Account }= require("../account/index")
-const { REWARD } = require("../config")
-
-const Interpreter = require("../interpreter")
-
-const { State } = require("../store/state")
-
+const { State } = require("../store/state");
+const { Excution } = require("../excution");
 const state = new State()
+const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
+const EC = require("elliptic").ec, ec = new EC("secp256k1");
+const MINT_PRIVATE_ADDRESS = "0700a1ad28a20e5b2a517c00242d3e25a88d84bf54dce9e1733e6096e6d6495e";
+const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
+const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
-
-const TRANSACTION_TYPE_MAP = {
-    CREATE_ACCOUNT:"CREATE ACCOUNT" , 
-    TRANSACT : "TRANSACT",
-    REWARD : "REWARD"
-}
-
-class Transaction {
-    constructor({id  , from , to , value , data , signature}){
-        this.id = id || uuidv4()
-        this.from = from || "-"
-        this.to = to || "-"
-        this.value = value || 0
-        this.data = data || "-"
-        this.signature = signature || "-"
-
-    }
-
-    static createTransaction({account  , to  , value  , beneficiary }){
-        if(beneficiary){
-            return new this({
-                to : beneficiary ,
-                value : REWARD,
-                data: {type : TRANSACTION_TYPE_MAP.REWARD}
-            })
-        }
-        if(to){
-            const transactionData = {
-                id : uuidv4() , 
-                from: account.address,
-                to ,
-                value ,
-                data : {type : TRANSACTION_TYPE_MAP.TRANSACT}
-            }
-            return new Transaction({
-                ...transactionData  , signature:account.sign(transactionData)
-            })
-        }
-    return new Transaction({
-             data:{
-                    type : TRANSACTION_TYPE_MAP.CREATE_ACCOUNT,
-                    accountData: JSON.parse(JSON.stringify(account))
-            }
-        })
+class Transaction { 
+    constructor(from, to,   amount, gas = 0  , code ="") { 
         
-    }
-   
-    static validateStandarTransaction({transaction}){
-         return new Promise((resolve , reject) => {
-            const {id , from , signature  } = transaction 
-            const transactionData = {...transaction}
-            delete transactionData.signature
-            if(!Account.verifySignature(({
-                publicKey : from ,
-                data : transactionData ,
-                signature
-            }))){
-                  return reject(new Error(`Transatction  ${id} signature is invalid`))
-            }
-            return resolve()
-         })
-
-    }
-     static validateCreateAccountTransaction({transaction}){
-        return new  Promise((reject  , resolve)=>{
-            const expectedAccountDataField =/* () =>{ */Object.keys(new Account().toJSON())
-                
-             /* toJSON();{
-                  return { }
-              }
-            
-            }*/
-            const fields = Object.keys(transaction.data.accountData) 
-            if(fields.length !== expectedAccountDataField.length){
-                return reject(new Error(
-                    `the transaction  account data has an icorret of fields`
-                ))
-            }
-            fields.forEach(field =>{
-                if(!expectedAccountDataField.includes(field)){
-                    return reject(new Error(
-                          `the field : ${field} , is unexpect for account data`
-                    ))
-                }
-            })
-        })
-    }
-    static validateReward({transaction }){
-        return new Promise((resolve , reject) =>{
-            const{value} = transaction
-            if(value !== REWARD){
-                return reject(new Error(`the reward ${value}doesn't correspond with the reward stablish`))
-
-            }
-           return resolve()
-        })
-
-    }
-    static runTransaction({transaction , state}){
-        switch(transaction.data.type){
-            case TRANSACTION_TYPE_MAP.TRANSACT:
-                Transaction.runStandarTransaction({transaction , state})
-
-                console.log("---update account data to rflect the standar transaction");
-              break
-            case TRANSACTION_TYPE_MAP.CREATE_ACCOUNT:
-                Transaction.runCreateAccountTransaction({transaction })
-                console.log(" stored the account data");
-                break
-            case TRANSACTION_TYPE_MAP.REWARD:
-                Transaction.RunRewardTransaction({transaction  , state})
-                console.log("-----update accountData to reflect the reward");
-                break
-            default:
-                break
-        }
-
+        this.from = from; 
+        this.to = to; 
+        this.amount = amount; 
+        this.gas = gas; 
+        this.code =  code
         
+        
+    } 
+ 
+    sign(keyPair) { 
+        if (keyPair.getPublic("hex") === this.from) { 
+            this.signature = keyPair.sign(SHA256(this.from + this.to + this.amount + this.gas ), "base64").toDER("hex"); 
+        } 
+    } 
+    static createAccount(code = []){
+         return Account.toJSON(code)
     }
-
-    static runStandarTransaction({transaction }){
-        const fromAccount = state.getAccount({address: transaction.from})
-        const toAccount = state.getAccount({address : transaction.to}) 
-        console.log("----------- start smart contract excution --------------");
-        console.log(codeExcution(toAccount.code));
-        console.log("---------stop smart contract excution-----");
-        const {value} = transaction
-        fromAccount.balance -=value
-        toAccount.balance += value
-        state.putAccount({address : transaction.from ,accountData : fromAccount })
-        state.putAccount({address : transaction.from ,accountData : toAccount })
-
-    }
-    static runCreateAccountTransaction({transaction , state}){
-        const { accountData} = transaction.data
-        const {address , codeHash } = accountData
-        state.putAccount({address : codeHash ? codeHash :address ,accountData})
-    }
-    static RunRewardTransaction({ transaction  , state}){
-        const {to , value } = transaction
-        const accountData = state.getAccount({address : to  })
-        accountData.balance += value
-        state.putAccount({address : to , accountData})
-
+   static exc (){
+     return this.code
+   }
+    static isValid(tx, chain) { 
+        return (
+            tx.from && 
+            tx.to && 
+            tx.amount &&
+            tx.code  &&
+            (chain.getBalance(tx.from) >= tx.amount + tx.gas || tx.from === MINT_PUBLIC_ADDRESS) && 
+            ec.keyFromPublic(tx.from, "hex").verify(SHA256(tx.from + tx.to + tx.amount + tx.gas), tx.signature)
+        )
     }
 } 
 
-module.exports= {Transaction  }
-
+module.exports={Transaction}
