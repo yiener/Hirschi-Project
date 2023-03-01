@@ -22,6 +22,7 @@ function Excution(instructions  , delay) {
   const secondHalf = parsedInstructions.slice(mid, length);
 
 
+
  const exc =  new Promise((resolve, reject) => {
     try {
       const inter = new Interpreter()
